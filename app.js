@@ -127,21 +127,18 @@ async function sendConfession(text) {
     const db = firebase.database();
     const newRef = db.ref('confessions').push();
 
-    // Get Telegram user ID (if available)
-    const userId = Telegram.WebApp.initDataUnsafe?.user?.id;
+    // Get user data from Telegram
+    const user = Telegram.WebApp.initDataUnsafe?.user;
+    const userId = user?.id;          // e.g., 123456789 (number)
+    const username = user?.username;  // e.g., "john_doe" (string, may be undefined)
 
-    // Prepare data to save
-    const confessionData = {
+    await newRef.set({
       text: text,
-      timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
-
-    // Only add user ID if you're okay with storing it (and have disclosed it!)
-    if (userId) {
-      confessionData.tg_user_id = userId; // ⚠️ Add privacy notice in your app!
-    }
-
-    await newRef.set(confessionData);
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      // ⚠️ Only add these if you accept the risks:
+      tg_user_id: userId,
+      tg_username: username // Could be null!
+    });
   } catch (error) {
     console.error("Save failed:", error);
     throw error;
