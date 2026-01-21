@@ -1,4 +1,21 @@
 // Generate city silhouette with buildings and windows
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCRbvL-ukbI3F7et2eWzCYQ4lZ6d-u6WWc",
+  authDomain: "confess-tg.firebaseapp.com",
+  projectId: "confess-tg",
+  storageBucket: "confess-tg.firebasestorage.app",
+  messagingSenderId: "360800512759",
+  appId: "1:360800512759:web:53ffce65d5f910da1d41f2"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
     function generateCity() {
       const container = document.getElementById('citySilhouette');
       const width = container.offsetWidth;
@@ -137,11 +154,23 @@
         });
     });
     
-    // Mock backend function
-    async function sendConfession(text) {
-      // Replace this with real fetch() in production
-      return new Promise((resolve) => setTimeout(resolve, 800));
-    }
+    // REAL Firebase save function
+async function sendConfession(text) {
+  try {
+    const db = firebase.database();
+    const newConfessionRef = db.ref('confessions').push();
+    
+    await newConfessionRef.set({
+      text: text,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+    
+    return; // Success
+  } catch (error) {
+    console.error("Firebase error:", error);
+    throw error;
+  }
+}
     
     // Add subtle hover effect to textarea
     confessionInput.addEventListener('focus', () => {
