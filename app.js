@@ -2,7 +2,7 @@
 const firebaseConfig = {
   apiKey: "AIzaSyCRbvL-ukbI3F7et2eWzCYQ4lZ6d-u6WWc",
   authDomain: "confess-tg.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.firebaseio.com", // No spaces!
+  databaseURL: "https://confess-tg-default-rtdb.firebaseio.com/", // No spaces!
   projectId: "confess-tg",
   storageBucket: "confess-tg.firebasestorage.app",
   messagingSenderId: "360800512759",
