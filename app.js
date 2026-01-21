@@ -148,8 +148,6 @@ async function sendConfession(text) {
 // 🔒 ANTI-ABUSE SYSTEM (SPAM + MODERATION + RATE LIMIT)
 // ================================
 
-// 🔑 Get your free API key from: https://perspectiveapi.com/
-const PERSPECTIVE_API_KEY = "YOUR_PERSPECTIVE_API_KEY"; // ← REPLACE THIS!
 
 // ⏱️ Rate limiting (30 seconds between submissions)
 let lastSubmitTime = 0;
@@ -184,75 +182,44 @@ function isLikelySpam(text) {
 
   return false;
 }
+// Replace with your Hugging Face token
+const HF_TOKEN = "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";
 
-// 🤖 AI Moderation using Perspective API (free tier: 10k requests/day)
 async function isToxic(text) {
-  if (!PERSPECTIVE_API_KEY || PERSPECTIVE_API_KEY === "YOUR_PERSPECTIVE_API_KEY") {
-    console.warn("⚠️ Perspective API key not set. Skipping AI moderation.");
-    return false; // Skip moderation if key missing
+  if (!HF_TOKEN || HF_TOKEN === "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") {
+    return false; // Skip if no token
   }
 
   try {
-    const url = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${PERSPECTIVE_API_KEY}`;
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/meta-llama/LlamaGuard-7b",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${HF_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          inputs: `<|start_header_id|>user<|end_header_id|>\n\n${text}<|eot_id|>`
+        })
+      }
+    );
+
+    const result = await response.json();
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        comment: { text: text },
-        languages: ['en'],
-        requestedAttributes: { 
-          TOXICITY: {}, 
-          INSULT: {},
-          SEXUALLY_EXPLICIT: {}
-        }
-      })
-    });
-
-    if (!response.ok) {
-      console.warn("Perspective API error:", response.status);
-      return false; // Fail open
+    // Llama Guard returns "safe" or a violation category
+    if (result && typeof result[0]?.generated_text === 'string') {
+      const output = result[0].generated_text.trim().toLowerCase();
+      return output !== "safe";
     }
-
-    const data = await response.json();
-    const toxicity = data.attributeScores?.TOXICITY?.summaryScore?.value || 0;
-    const explicit = data.attributeScores?.SEXUALLY_EXPLICIT?.summaryScore?.value || 0;
-
-    // Flag if highly toxic or explicit
-    return toxicity > 0.7 || explicit > 0.6;
+    
+    return false;
   } catch (error) {
-    console.warn("Moderation failed (network error). Allowing submission.", error);
-    return false; // Fail open — don't block if API fails
+    console.warn("Llama Guard failed:", error);
+    return false; // Fail open
   }
 }
 
-// 🚦 Combined pre-submission check
-async function validateConfession(text) {
-  // 1. Check rate limit
-  const now = Date.now();
-  if (now - lastSubmitTime < MIN_SUBMIT_INTERVAL) {
-    const waitSecs = Math.ceil((MIN_SUBMIT_INTERVAL - (now - lastSubmitTime)) / 1000);
-    Telegram.WebApp.showAlert(`⏳ Please wait ${waitSecs} second${waitSecs !== 1 ? 's' : ''} before submitting again.`);
-    return false;
-  }
-
-  // 2. Check spam
-  if (isLikelySpam(text)) {
-    Telegram.WebApp.showAlert("🚫 Please share a real confession.\n\n• No links, emails, or phone numbers\n• At least 5 meaningful words");
-    return false;
-  }
-
-  // 3. Check toxicity (only if key is set)
-  if (PERSPECTIVE_API_KEY && PERSPECTIVE_API_KEY !== "YOUR_PERSPECTIVE_API_KEY") {
-    const toxic = await isToxic(text);
-    if (toxic) {
-      Telegram.WebApp.showAlert("💬 Your message seems inappropriate.\n\nPlease keep confessions respectful and kind.");
-      return false;
-    }
-  }
-
-  return true; // All checks passed
-}
   
   mainButton.onClick(async () => {
   const confession = confessionInput.value.trim();
