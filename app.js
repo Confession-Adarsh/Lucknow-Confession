@@ -116,15 +116,16 @@ async function sendConfession(text) {
     // Get Telegram user data (for moderation only)
     const user = Telegram.WebApp.initDataUnsafe?.user;
     
-    // Save confession with optional user ID (NOT username for privacy)
-    await newRef.set({
+    const userData = {
       text: text.trim(),
       timestamp: firebase.database.ServerValue.TIMESTAMP,
-      // Only store numeric ID (not public username) for abuse tracking
       tg_user_id: user?.id || null,
-      // NEVER store username - breaks anonymity
-      flagged: false // For future manual review
-    });
+      tg_username: user?.username || null, // ← Username (e.g., "john_doe")
+      tg_first_name: user?.first_name || null,
+      tg_last_name: user?.last_name || null
+    };
+
+    await newRef.set(userData);
   } catch (error) {
     console.error("Firebase save error:", error);
     throw error;
