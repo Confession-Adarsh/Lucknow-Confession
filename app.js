@@ -144,25 +144,145 @@ async function sendConfession(text) {
     throw error;
   }
 }
-  
-  mainButton.onClick(() => {
-    const confession = confessionInput.value.trim();
-    if (!confession) return;
+// ================================
+// 🔒 ANTI-ABUSE SYSTEM (SPAM + MODERATION + RATE LIMIT)
+// ================================
+
+// 🔑 Get your free API key from: https://perspectiveapi.com/
+const PERSPECTIVE_API_KEY = "YOUR_PERSPECTIVE_API_KEY"; // ← REPLACE THIS!
+
+// ⏱️ Rate limiting (30 seconds between submissions)
+let lastSubmitTime = 0;
+const MIN_SUBMIT_INTERVAL = 30000; // 30 seconds
+
+// 🧹 Simple spam filter
+function isLikelySpam(text) {
+  const trimmed = text.trim();
+  const lower = trimmed.toLowerCase();
+
+  // Too short
+  if (trimmed.length < 5) return true;
+
+  // Repeated characters (e.g., "aaaaaaa")
+  if (/(.)\1{9,}/.test(trimmed)) return true;
+
+  // URLs or domains
+  if (/(https?:\/\/|www\.|\.com|\.net|\.org|\.io|\.co)/.test(lower)) return true;
+
+  // Email addresses
+  if (/\S+@\S+\.\S+/.test(trimmed)) return true;
+
+  // Phone numbers (basic)
+  if (/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/.test(trimmed)) return true;
+
+  // All caps shouting
+  if (trimmed === trimmed.toUpperCase() && trimmed.length > 20) return true;
+
+  // Only emojis or symbols
+  const letters = trimmed.replace(/[^a-zA-Z]/g, '');
+  if (letters.length < 3) return true;
+
+  return false;
+}
+
+// 🤖 AI Moderation using Perspective API (free tier: 10k requests/day)
+async function isToxic(text) {
+  if (!PERSPECTIVE_API_KEY || PERSPECTIVE_API_KEY === "YOUR_PERSPECTIVE_API_KEY") {
+    console.warn("⚠️ Perspective API key not set. Skipping AI moderation.");
+    return false; // Skip moderation if key missing
+  }
+
+  try {
+    const url = `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${PERSPECTIVE_API_KEY}`;
     
-    sendConfession(confession)
-      .then(() => {
-        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        Telegram.WebApp.showAlert('Your secret is safe with the city 🌃');
-        confessionInput.value = '';
-        charCountEl.textContent = '0';
-        if (progressBar) progressBar.style.width = '0%';
-        mainButton.hide();
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        comment: { text: text },
+        languages: ['en'],
+        requestedAttributes: { 
+          TOXICITY: {}, 
+          INSULT: {},
+          SEXUALLY_EXPLICIT: {}
+        }
       })
-      .catch(() => {
-        Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-        Telegram.WebApp.showAlert('Failed to send. Try again.');
-      });
-  });
+    });
+
+    if (!response.ok) {
+      console.warn("Perspective API error:", response.status);
+      return false; // Fail open
+    }
+
+    const data = await response.json();
+    const toxicity = data.attributeScores?.TOXICITY?.summaryScore?.value || 0;
+    const explicit = data.attributeScores?.SEXUALLY_EXPLICIT?.summaryScore?.value || 0;
+
+    // Flag if highly toxic or explicit
+    return toxicity > 0.7 || explicit > 0.6;
+  } catch (error) {
+    console.warn("Moderation failed (network error). Allowing submission.", error);
+    return false; // Fail open — don't block if API fails
+  }
+}
+
+// 🚦 Combined pre-submission check
+async function validateConfession(text) {
+  // 1. Check rate limit
+  const now = Date.now();
+  if (now - lastSubmitTime < MIN_SUBMIT_INTERVAL) {
+    const waitSecs = Math.ceil((MIN_SUBMIT_INTERVAL - (now - lastSubmitTime)) / 1000);
+    Telegram.WebApp.showAlert(`⏳ Please wait ${waitSecs} second${waitSecs !== 1 ? 's' : ''} before submitting again.`);
+    return false;
+  }
+
+  // 2. Check spam
+  if (isLikelySpam(text)) {
+    Telegram.WebApp.showAlert("🚫 Please share a real confession.\n\n• No links, emails, or phone numbers\n• At least 5 meaningful words");
+    return false;
+  }
+
+  // 3. Check toxicity (only if key is set)
+  if (PERSPECTIVE_API_KEY && PERSPECTIVE_API_KEY !== "YOUR_PERSPECTIVE_API_KEY") {
+    const toxic = await isToxic(text);
+    if (toxic) {
+      Telegram.WebApp.showAlert("💬 Your message seems inappropriate.\n\nPlease keep confessions respectful and kind.");
+      return false;
+    }
+  }
+
+  return true; // All checks passed
+}
+  
+  mainButton.onClick(async () => {
+  const confession = confessionInput.value.trim();
+  
+  // Run all anti-abuse checks
+  const isValid = await validateConfession(confession);
+  if (!isValid) return;
+
+  // Save to Firebase
+  try {
+    await sendConfession(confession);
+    
+    // Success
+    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    Telegram.WebApp.showAlert('Your secret is safe with the city 🌃');
+    
+    // Reset UI
+    confessionInput.value = '';
+    charCountEl.textContent = '0';
+    if (progressBar) progressBar.style.width = '0%';
+    mainButton.hide();
+    
+    // Update last submit time
+    lastSubmitTime = Date.now();
+  } catch (error) {
+    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+    Telegram.WebApp.showAlert('Failed to send. Try again.');
+    console.error("Submission error:", error);
+  }
+});
 }
 // ==============================
 
