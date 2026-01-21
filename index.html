@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>City Confessions</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  
+
+  <!-- Animated Background -->
+  <div class="background">
+    <div class="city-silhouette" id="citySilhouette"></div>
+    <div class="stars" id="stars"></div>
+    
+    <!-- Floating confetti elements -->
+    <div class="floating"><i class="fas fa-envelope"></i></div>
+    <div class="floating"><i class="fas fa-lock"></i></div>
+    <div class="floating"><i class="fas fa-moon"></i></div>
+    <div class="floating"><i class="fas fa-star"></i></div>
+  </div>
+
+  <div class="container">
+    <div class="confession-card" id="confessionCard">
+      <h1>City Confessions</h1>
+      <textarea id="confessionInput" placeholder="Share your secret... (max 1000 chars)"></textarea>
+      
+      <div class="char-counter">
+        <span class="counter-value" id="charCount">0</span>
+        <span>/</span>
+        <span class="max-chars">1000</span>
+      </div>
+      
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      
+      <button class="submit-btn" id="submitButton">Submit Confession</button>
+    </div>
+  </div>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <script src="app.js"></script>
+</body>
+</html>
