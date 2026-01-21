@@ -122,19 +122,31 @@ function initConfessionApp() {
   });
   
   // Firebase save function
-  async function sendConfession(text) {
-    try {
-      const db = firebase.database();
-      const newRef = db.ref('confessions').push();
-      await newRef.set({
-        text: text,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-      });
-    } catch (error) {
-      console.error("Save failed:", error);
-      throw error;
+async function sendConfession(text) {
+  try {
+    const db = firebase.database();
+    const newRef = db.ref('confessions').push();
+
+    // Get Telegram user ID (if available)
+    const userId = Telegram.WebApp.initDataUnsafe?.user?.id;
+
+    // Prepare data to save
+    const confessionData = {
+      text: text,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    // Only add user ID if you're okay with storing it (and have disclosed it!)
+    if (userId) {
+      confessionData.tg_user_id = userId; // ⚠️ Add privacy notice in your app!
     }
+
+    await newRef.set(confessionData);
+  } catch (error) {
+    console.error("Save failed:", error);
+    throw error;
   }
+}
   
   mainButton.onClick(() => {
     const confession = confessionInput.value.trim();
