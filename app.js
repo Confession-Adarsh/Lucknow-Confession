@@ -21,7 +21,7 @@ const MODERATION_CONFIG = {
   BANNED_PHRASES: [
     "kill", "bomb", "hack", "ddos", "suicide", "self harm", "racist",
     "nigga", "faggot", "slut", "whore", "porn", "nude", "sex",
-    "fuck", "bitch", "asshole", "cunt", "dick", "pussy",
+    "fuck", "bitch","mc","bsdk","bc","madharchod","behenchod","bhosdike", "asshole", "cunt", "dick", "pussy",
     "http://", "https://", "www.", ".com", ".net", ".org",
     "click here", "free money", "earn cash", "subscribe", "follow me",
     "my channel", "t.me/", "wa.me", "instagram.com", "facebook.com",
